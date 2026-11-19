@@ -12,8 +12,10 @@ import (
 func main() {
 	cfg := config.MustLoad()
 
+	ctx := context.Background()
+
 	// Load the Shared AWS Configuration (~/.aws/config)
-	awsCFG, err := awsconfig.LoadDefaultConfig(context.TODO())
+	awsCFG, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -22,5 +24,5 @@ func main() {
 	garage := cfg.GarageCFG
 	storage := s3storage.New(awsCFG, garage.BaseEndpoint, garage.Region, garage.Bucket, garage.UsePathStyle)
 
-	storage.ListObjects(context.TODO())
+	storage.ListObjects(ctx)
 }
