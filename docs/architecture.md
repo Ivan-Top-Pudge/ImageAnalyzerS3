@@ -26,6 +26,14 @@ flowchart LR
 
 В схеме указаны два варианта имени промежуточного статуса — `processing` и `analyzing`. Имя статуса и формат ответа для завершённой задачи предстоит закрепить в контракте API.
 
+## Объектное хранилище
+
+Для первой локальной интеграции предлагается Garage на одном узле. Он поддерживает `PutObject` для загрузки, `GetObject` для чтения анализатором, `DeleteObject` для компенсации и `ListObjectsV2` для фоновой сверки. [Совместимость Garage с S3](https://garagehq.deuxfleurs.fr/documentation/reference-manual/s3-compatibility/).
+
+Go-сервис обращается к хранилищу через S3 API. Для Garage клиент получает адрес через `BaseEndpoint`, использует адресацию `UsePathStyle` и подписывает запросы с регионом из `s3_region`. Имя бакета и учётные данные передаются при запуске. [Настройка endpoint в AWS SDK for Go v2](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-endpoints.html).
+
+Первый сценарий можно проверить без PostgreSQL и Kafka. Клиент сохраняет тестовую фотографию через `PutObject`, читает её через `GetObject` и сравнивает содержимое с исходным файлом. Одноузловой Garage подходит для такой проверки, развёртывание с репликацией проектируется отдельно. [Быстрый старт Garage](https://garagehq.deuxfleurs.fr/documentation/quick-start/).
+
 ## POST /api/analyze
 
 Запрос передаёт одну фотографию как файл в поле `image` с типом тела `multipart/form-data`. API проверяет наличие файла до записи в S3 и БД.
