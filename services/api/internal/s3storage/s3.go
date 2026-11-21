@@ -79,3 +79,15 @@ func (s *S3) ListObjects(ctx context.Context) {
 		log.Printf("key=%s size=%d", aws.ToString(object.Key), *object.Size)
 	}
 }
+
+func (s *S3) DeleteObject(ctx context.Context, objectKey string) error {
+	const op = "S3Storage.DeleteObject"
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(objectKey),
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
