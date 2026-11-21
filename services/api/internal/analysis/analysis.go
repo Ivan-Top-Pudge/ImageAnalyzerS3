@@ -17,7 +17,7 @@ type s3 interface {
 }
 
 type storage interface {
-	CreateWithOutbox(ctx context.Context, imageID string) error
+	CreateWithOutbox(ctx context.Context, imageID string) (uuid.UUID, error)
 }
 
 func New(s3 s3, st storage) *Analysis {
@@ -38,11 +38,12 @@ func (a *Analysis) Upload(ctx context.Context, fileBytes []byte) (uuid.UUID, err
 		return uuid.Nil(), fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := a.storage.CreateWithOutbox(ctx, strImageID); err != nil {
+	taskID, err := a.storage.CreateWithOutbox(ctx, strImageID)
+	if err != nil {
 		// TODO: delete s3 object if transaction commit failed
 		// if errors.Is(err, ErrTaskNotCommitted)
 		return uuid.Nil(), fmt.Errorf("%s: %w", op, err)
 	}
 
-	return imageID, nil
+	return taskID, nil
 }

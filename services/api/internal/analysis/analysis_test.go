@@ -10,11 +10,11 @@ import (
 )
 
 type storageMock struct {
-	create func(context.Context, string) error
+	create func(context.Context, string) (uuid.UUID, error)
 }
 
-func (m storageMock) CreateWithOutbox(ctx context.Context, taskID string) error {
-	return m.create(ctx, taskID)
+func (m storageMock) CreateWithOutbox(ctx context.Context, objectKey string) (uuid.UUID, error) {
+	return m.create(ctx, objectKey)
 }
 
 type s3Mock struct {
@@ -30,19 +30,21 @@ func (s3Mock) GetObject(context.Context, string) ([]byte, error) {
 }
 
 func TestUpload(t *testing.T) {
-	s3Err := errors.New("S3 unavailable")
+	s3Err := errors.New("s3 unavailable")
 	repositoryErr := errors.New("database unavailable")
 
 	tests := []struct {
-		name      string
-		putErr    error
-		createErr error
-		wantErr   error
-		wantCalls []string
+		name       string
+		putErr     error
+		createErr  error
+		wantErr    error
+		wantCalls  []string
+		wantTaskID uuid.UUID
 	}{
 		{
-			name:      "returns task ID after saving image and task",
-			wantCalls: []string{"PutObject", "CreateWithOutbox"},
+			name:       "returns the repository task ID after saving the image",
+			wantCalls:  []string{"PutObject", "CreateWithOutbox"},
+			wantTaskID: uuid.NewV7(),
 		},
 		{
 			name:      "skips repository when S3 fails",
@@ -68,6 +70,9 @@ func TestUpload(t *testing.T) {
 				put: func(_ context.Context, key string, data []byte) error {
 					calls = append(calls, "PutObject")
 					objectKey = key
+					if key == "" || key == uuid.Nil().String() {
+						t.Errorf("S3 received invalid object key %q", key)
+					}
 					if !bytes.Equal(data, image) {
 						t.Errorf("S3 data = %q, want %q", data, image)
 					}
@@ -75,12 +80,12 @@ func TestUpload(t *testing.T) {
 				},
 			}
 			repository := storageMock{
-				create: func(_ context.Context, taskID string) error {
+				create: func(_ context.Context, key string) (uuid.UUID, error) {
 					calls = append(calls, "CreateWithOutbox")
-					if taskID != objectKey {
-						t.Errorf("repository task ID = %q, S3 key = %q", taskID, objectKey)
+					if key != objectKey {
+						t.Errorf("repository object key = %q, want S3 key %q", key, objectKey)
 					}
-					return tt.createErr
+					return tt.wantTaskID, tt.createErr
 				},
 			}
 
@@ -93,15 +98,8 @@ func TestUpload(t *testing.T) {
 				t.Errorf("calls = %v, want %v", calls, tt.wantCalls)
 			}
 
-			if tt.wantErr != nil {
-				if id != uuid.Nil() {
-					t.Errorf("Upload returned task ID %s on error", id)
-				}
-				return
-			}
-
-			if id == uuid.Nil() || id.String() != objectKey {
-				t.Errorf("returned task ID = %s, want non-nil ID matching S3 key %q", id, objectKey)
+			if id != tt.wantTaskID {
+				t.Errorf("returned task ID = %s, want %s", id, tt.wantTaskID)
 			}
 		})
 	}
