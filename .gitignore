@@ -2,3 +2,4 @@
 garage.toml
 /.env
 /config/local.yaml
+*.out
