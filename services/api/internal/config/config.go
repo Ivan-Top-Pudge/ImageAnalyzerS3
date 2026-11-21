@@ -10,6 +10,13 @@ import (
 type Config struct {
 	Env       string       `yaml:"env"`
 	GarageCFG GarageConfig `yaml:"garage"`
+	HTTP      HTTPConfig   `yaml:"http"`
+}
+
+type HTTPConfig struct {
+	MaxFileBytes    int64 `yaml:"max_file_bytes"`
+	MaxRequestBytes int64 `yaml:"max_request_bytes"`
+	MaxImagePixels  int64 `yaml:"max_image_pixels" env-default:"16000000"`
 }
 
 type GarageConfig struct {
