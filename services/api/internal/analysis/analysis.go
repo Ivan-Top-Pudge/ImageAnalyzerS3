@@ -2,8 +2,12 @@ package analysis
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 	"uuid"
+
+	"github.com/Ivan-Top-Pudge/ImageAnalyzerS3/services/api/internal/domain"
 )
 
 type Analysis struct {
@@ -14,6 +18,7 @@ type Analysis struct {
 type s3 interface {
 	PutObject(ctx context.Context, key string, data []byte) error
 	GetObject(ctx context.Context, key string) ([]byte, error)
+	DeleteObject(ctx context.Context, key string) error
 }
 
 type storage interface {
@@ -40,8 +45,15 @@ func (a *Analysis) Upload(ctx context.Context, fileBytes []byte) (uuid.UUID, err
 
 	taskID, err := a.storage.CreateWithOutbox(ctx, strImageID)
 	if err != nil {
-		// TODO: delete s3 object if transaction commit failed
-		// if errors.Is(err, ErrTaskNotCommitted)
+		if errors.Is(err, domain.ErrTaskNotCommitted) {
+			// TODO: fix hardcode timeout
+			delCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer cancel()
+
+			if delErr := a.s3.DeleteObject(delCtx, strImageID); delErr != nil {
+				return uuid.Nil(), fmt.Errorf("%s: %w", op, errors.Join(delErr, err))
+			}
+		}
 		return uuid.Nil(), fmt.Errorf("%s: %w", op, err)
 	}
 
