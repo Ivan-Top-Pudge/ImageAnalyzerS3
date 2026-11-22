@@ -38,7 +38,7 @@ func New(ctx context.Context) *App {
 	defer cancel()
 
 	imageStorage := mustSetupS3(startupCtx, cfg.GarageCFG)
-	pool := mustSetupPostgres(startupCtx, os.Getenv("DATABASE_URL"))
+	pool := mustSetupPostgres(startupCtx, cfg.PostgresDSN)
 	ready := false
 	defer func() {
 		if !ready {

@@ -3,14 +3,16 @@ package config
 import (
 	"flag"
 	"os"
+	"strings"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	Env       string       `yaml:"env"`
-	GarageCFG GarageConfig `yaml:"garage"`
-	HTTP      HTTPConfig   `yaml:"http"`
+	Env         string       `yaml:"env"`
+	PostgresDSN string       `yaml:"postgres_dsn"`
+	GarageCFG   GarageConfig `yaml:"garage"`
+	HTTP        HTTPConfig   `yaml:"http"`
 }
 
 type HTTPConfig struct {
@@ -43,6 +45,9 @@ func MustLoadByPath(configPath string) *Config {
 
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
 		panic("failed to read config: " + err.Error())
+	}
+	if strings.TrimSpace(cfg.PostgresDSN) == "" {
+		panic("postgres_dsn is required")
 	}
 
 	return &cfg
