@@ -1,0 +1,13 @@
+env: local
+postgres_dsn: "postgres://s3analysis:CHANGE_ME@127.0.0.1:5432/analysis_db?sslmode=disable"
+
+http:
+  max_file_bytes: 10485760
+  max_request_bytes: 11534336
+  max_image_pixels: 16000000
+
+garage:
+  base_endpoint: "http://127.0.0.1:3900"
+  region: garage
+  bucket: default-bucket
+  use_path_style: true
