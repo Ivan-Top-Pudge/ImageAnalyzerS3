@@ -1,0 +1,90 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      CONFIG_PATH: /config/api.yaml
+      POSTGRES_DSN: "postgres://${POSTGRES_USER:-s3analysis}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-analysis_db}?sslmode=disable"
+      GARAGE_BASE_ENDPOINT: http://garage:3900
+      GARAGE_BUCKET: "${GARAGE_DEFAULT_BUCKET:-default-bucket}"
+      AWS_ACCESS_KEY_ID: "${GARAGE_DEFAULT_ACCESS_KEY}"
+      AWS_SECRET_ACCESS_KEY: "${GARAGE_DEFAULT_SECRET_KEY}"
+    configs:
+      - source: api_config
+        target: /config/api.yaml
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      garage:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-w", "2", "127.0.0.1", "8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    container_name: postgres_s3analysis
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-s3analysis}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-analysis_db}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: "${GARAGE_DEFAULT_ACCESS_KEY}"
+      GARAGE_DEFAULT_SECRET_KEY: "${GARAGE_DEFAULT_SECRET_KEY}"
+      GARAGE_DEFAULT_BUCKET: "${GARAGE_DEFAULT_BUCKET:-default-bucket}"
+    healthcheck:
+      test: ["CMD", "/garage", "bucket", "info", "${GARAGE_DEFAULT_BUCKET:-default-bucket}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "127.0.0.1:3900:3900"
+      - "127.0.0.1:3901:3901"
+      - "127.0.0.1:3902:3902"
+      - "127.0.0.1:3903:3903"
+    volumes:
+      - type: bind
+        source: ./garage.toml
+        target: /etc/garage.toml
+        read_only: true
+        bind:
+          create_host_path: false
+      - garage_meta:/tmp/meta
+      - garage_data:/tmp/data
+
+configs:
+  api_config:
+    file: ./config/example.yaml
+
+volumes:
+  postgres_data:
+  garage_meta:
+  garage_data:

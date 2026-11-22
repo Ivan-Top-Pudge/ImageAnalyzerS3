@@ -36,7 +36,7 @@ Go-сервис обращается к хранилищу через S3 API. Д
 
 ## Подключение к PostgreSQL
 
-При запуске API читает обязательное поле `postgres_dsn` из YAML-конфигурации. Для API, запущенного на хосте с PostgreSQL в Compose, адрес базы — `127.0.0.1:5430`, имя базы — `postgres_db`.
+API читает `postgres_dsn` из YAML-конфигурации. Compose задаёт `POSTGRES_DSN` для подключения по адресу `postgres:5432`. При запуске API на хосте в DSN указывают `127.0.0.1` и порт из `POSTGRES_PORT`. [Локальный запуск API](../README.md#локальный-запуск-api).
 
 ## POST /api/analyze
 

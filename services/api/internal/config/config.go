@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	Env         string       `yaml:"env"`
-	PostgresDSN string       `yaml:"postgres_dsn"`
+	PostgresDSN string       `yaml:"postgres_dsn" env:"POSTGRES_DSN"`
 	GarageCFG   GarageConfig `yaml:"garage"`
 	HTTP        HTTPConfig   `yaml:"http"`
 }
@@ -22,9 +22,9 @@ type HTTPConfig struct {
 }
 
 type GarageConfig struct {
-	BaseEndpoint string `yaml:"base_endpoint"`
+	BaseEndpoint string `yaml:"base_endpoint" env:"GARAGE_BASE_ENDPOINT"`
 	Region       string `yaml:"region"`
-	Bucket       string `yaml:"bucket" env-default:"default-bucket"`
+	Bucket       string `yaml:"bucket" env:"GARAGE_BUCKET" env-default:"default-bucket"`
 	UsePathStyle bool   `yaml:"use_path_style"`
 }
 
