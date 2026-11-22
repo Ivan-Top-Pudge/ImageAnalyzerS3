@@ -2,27 +2,27 @@ package main
 
 import (
 	"context"
-	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/Ivan-Top-Pudge/ImageAnalyzerS3/services/api/internal/config"
-	"github.com/Ivan-Top-Pudge/ImageAnalyzerS3/services/api/internal/s3storage"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	apiapp "github.com/Ivan-Top-Pudge/ImageAnalyzerS3/services/api/internal/app"
 )
 
 func main() {
-	cfg := config.MustLoad()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	ctx := context.Background()
+	app := apiapp.New(ctx)
+	go app.HTTPSrv.MustRun()
 
-	// Load the Shared AWS Configuration (~/.aws/config)
-	awsCFG, err := awsconfig.LoadDefaultConfig(ctx)
-	if err != nil {
-		log.Fatal(err)
+	<-ctx.Done()
+	stop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		panic(err)
 	}
-
-	// Create an Amazon S3 service client
-	garage := cfg.GarageCFG
-	storage := s3storage.New(awsCFG, garage.BaseEndpoint, garage.Region, garage.Bucket, garage.UsePathStyle)
-
-	storage.ListObjects(ctx)
 }
