@@ -75,7 +75,12 @@ func mustSetupS3(ctx context.Context, cfg config.GarageConfig) *s3storage.S3 {
 		panic(fmt.Errorf("load AWS configuration: %w", err))
 	}
 
-	return s3storage.New(awsCfg, cfg.BaseEndpoint, cfg.Region, cfg.Bucket, cfg.UsePathStyle)
+	s3 := s3storage.New(awsCfg, cfg.BaseEndpoint, cfg.Region, cfg.Bucket, cfg.UsePathStyle)
+
+	if err := s3.Ping(ctx); err != nil {
+		panic(fmt.Errorf("ping S3: %w", err))
+	}
+	return s3
 }
 
 func mustSetupPostgres(ctx context.Context, dsn string) *pgxpool.Pool {

@@ -91,3 +91,15 @@ func (s *S3) DeleteObject(ctx context.Context, objectKey string) error {
 	}
 	return nil
 }
+
+func (s *S3) Ping(ctx context.Context) error {
+	const op = "S3Storage.Ping"
+
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(s.bucket),
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
